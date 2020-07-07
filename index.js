@@ -1,69 +1,82 @@
-// Your code here
-let keys = ['firstName','familyName','title','payPerHour', 'timeInEvents', 'timeOutEvents']
-
-function createEmployeeRecord(arr) {
-  let i = 0;
-  let obj = arr.reduce((accumulator, currentValue) => {
-    accumulator[keys[i]] = currentValue;
-    i++
-    return accumulator
-  },{})
-  obj[keys[4]] = []
-  obj[keys[5]] = []
-  return obj
+let createEmployeeRecord = function(row){
+    return {
+        firstName: row[0],
+        familyName: row[1],
+        title: row[2],
+        payPerHour: row[3],
+        timeInEvents: [],
+        timeOutEvents: []
+    }
 }
 
-function createEmployeeRecords(arr) {
-  return arr.reduce((accumulator, currentValue) => {
-    accumulator.push(createEmployeeRecord(currentValue))
-      return accumulator
-    }, [])
+let createEmployeeRecords = function(employeeRowData) {
+    return employeeRowData.map(function(row){
+        return createEmployeeRecord(row)
+    })
 }
 
-function addTimeInAndOut(employeeRecordObj, dateTimeString, property, type) {
- let [date, hour] = dateTimeString.split(' ')
-  employeeRecordObj[property] = []
-  employeeRecordObj[property].push({
-    type: type,
-    date: date,
-    hour: number(hour)
+let createTimeInEvent = function(employee, dateStamp){
+    let [date, hour] = dateStamp.split(' ')
+
+    employee.timeInEvents.push({
+        type: "TimeIn",
+        hour: parseInt(hour, 10),
+        date,
+    })
+
+    return employee
+}
+
+let createTimeOutEvent = function(employee, dateStamp){
+    let [date, hour] = dateStamp.split(' ')
+
+    employee.timeOutEvents.push({
+        type: "TimeOut",
+        hour: parseInt(hour, 10),
+        date,
+    })
+
+    return employee
+}
+
+let hoursWorkedOnDate = function(employee, soughtDate){
+    let inEvent = employee.timeInEvents.find(function(e){
+        return e.date === soughtDate
+    })
+
+    let outEvent = employee.timeOutEvents.find(function(e){
+        return e.date === soughtDate
+    })
+
+    return (outEvent.hour - inEvent.hour) / 100
+}
+
+let wagesEarnedOnDate = function(employee, dateSought){
+    let rawWage = hoursWorkedOnDate(employee, dateSought)
+        * employee.payPerHour
+    return parseFloat(rawWage.toString())
+}
+
+let allWagesFor = function(employee){
+    let eligibleDates = employee.timeInEvents.map(function(e){
+        return e.date
+    })
+
+    let payable = eligibleDates.reduce(function(memo, d){
+        return memo + wagesEarnedOnDate(employee, d)
+    }, 0)
+
+    return payable
+}
+
+let findEmployeeByFirstName = function(srcArray, firstName) {
+  return srcArray.find(function(rec){
+    return rec.firstName === firstName
   })
-  return employeeRecordObj
 }
 
-function createTimeInEvent(employeeRecordObj, dateTimeString) {
- return addTimeInAndOut(employeeRecordObj, dateTimeString, 'timeInEvents', "TimeIn")
-}
-
-function createTimeOutEvent(employeeRecordObj, dateTimeString) {
-  return addTimeInAndOut(employeeRecordObj, dateTimeString, 'timeOutEvents', "TimeOut")
-}
-
-function hoursWorkedOnDate(employeeRecordObj, dateString) {
-  let timeInHour = employeeRecordObj.timeInEvents.find(element => element.date === dateString).hour
-  let timeOutHour = employeeRecordObj.timeOutEvents.find(element => element.date === dateString).hour
-  return (timeOutHour - timeInHour) / 100
-}
-
-function wagesEarnedOnDate(employeeRecordObj, dateString) {
-  return hoursWorkedOnDate(employeeRecordObj, dateString) * employeeRecordObj.payPerHour
-}
-
-function allWagesFor(employeeRecordObj) {
-  let datesArr = employeeRecordObj.timeInEvents.map(element => element.date)
-  return datesArr.reduce((accumulator, currentValue) => {
-    accumulator += wagesEarnedOnDate(employeeRecordObj, currentValue)
-    return accumulator
-  }, 0)
-}
-
-function findEmployeeByFirstName(employeeRecordsArr, firstName) {
-  return employeeRecordsArr.find(element => element.firstName === firstName)
-}
-
-function calculatePayroll(employeeRecordsArr) {
-  return employeeRecordsArr.reduce((accumulator, currentValue) => {
-    accumulator += allWagesFor(currentValue)
-    return accumulator
-  }, 0)
-}
+let calculatePayroll = function(arrayOfEmployeeRecords){
+    return arrayOfEmployeeRecords.reduce(function(memo, rec){
+        return memo + allWagesFor(rec)
+    }, 0)
+} 
